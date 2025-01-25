@@ -28,7 +28,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 @ActiveProfiles("test")
 @SpringBootTest
-public class UserServiceClientTest {
+class UserServiceClientTest {
 
     @Autowired
     private UserServiceClient userServiceClient;
@@ -58,12 +58,12 @@ public class UserServiceClientTest {
     @BeforeEach
     void setUpUrl() {
         getEmailInfoUrl = UriComponentsBuilder.fromHttpUrl(userServiceUrl)
-                .path("/api/email/{userId}/info")
+                .path("/api/users/{userId}/email/info")
                 .buildAndExpand(USER_ID)
                 .toUriString();
 
         markEmailAsVerifiedUrl = UriComponentsBuilder.fromHttpUrl(userServiceUrl)
-                .path("/api/email/{userId}/verify-email")
+                .path("/api/users/{userId}/email/verify")
                 .buildAndExpand(USER_ID)
                 .toUriString();
     }

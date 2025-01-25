@@ -31,7 +31,7 @@ public class UserServiceClient {
     public UserEmailResponseDto getEmailInfoByUserId(Integer userId) {
 
         String url = UriComponentsBuilder.fromHttpUrl(userServiceUrl)
-                .path("/api/email/{userId}/info")
+                .path("/api/users/{userId}/email/info")
                 .buildAndExpand(userId)
                 .toUriString();
 
@@ -60,7 +60,7 @@ public class UserServiceClient {
         LOGGER.info("Initiating request to mark email as verified for user ID: {}", userId);
 
         String url = UriComponentsBuilder.fromHttpUrl(userServiceUrl)
-                .path("/api/email/{userId}/verify-email")
+                .path("/api/users/{userId}/email/verify")
                 .buildAndExpand(userId)
                 .toUriString();
 

@@ -36,7 +36,7 @@ public class TokenServiceClient {
     }
 
     public String generateToken(TokenRequest request) {
-        String tokenUrl = tokenServiceUrl + "/api/tokens/generate";
+        String tokenUrl = tokenServiceUrl + "/api/tokens";
 
         TokenResponse response = restTemplate.postForObject(tokenUrl, request, TokenResponse.class);
 

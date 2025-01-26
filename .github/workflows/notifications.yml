@@ -1,0 +1,146 @@
+name: Push and PR Notifications
+
+on:
+  workflow_run:
+    workflows: [ "Build and Test" ]
+    types:
+      - completed
+  pull_request:
+    types: [ opened, edited, reopened, closed ]
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  send_notifications:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Commit List
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ];
+          then
+            git log --oneline ${{ github.event.before }}..${{ github.sha }} | head -n 10 > commits.txt
+          else
+            git log --oneline HEAD~10..HEAD > commits.txt
+          fi
+
+      - name: Notify Discord - Security Issues
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "⚠️ Security Vulnerabilities Found",
+                   "description": "**Branch:** ${{ github.ref_name }}\n**Commit:** ${{ github.sha }}\nCheck security scan logs for details.",
+                   "color": 16776960
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_EMAIL_SERVICE }}
+
+      - name: Notify Discord - Pull Request Opened
+        if: ${{ github.event_name == 'pull_request' && github.event.action == 'opened' }}
+        run: |
+          SERVICE=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "📋 New Pull Request Opened",
+                   "description": "**Service:** '"${SERVICE}"'\n**Title:** ${{ github.event.pull_request.title }}\n**Author:** @${{ github.event.pull_request.user.login }}\n**Branch:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n[View Pull Request](${{ github.event.pull_request.html_url }})",
+                   "color": 3447003
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_PR }}
+
+      - name: Notify Discord - Pull Request Updated
+        if: ${{ github.event_name == 'pull_request' && github.event.action == 'edited' }}
+        run: |
+          SERVICE=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "✏️ Pull Request Updated",
+                   "description": "**Service:** '"${SERVICE}"'\n**Title:** ${{ github.event.pull_request.title }}\n**Author:** @${{ github.event.pull_request.user.login }}\n**Branch:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n[View Pull Request](${{ github.event.pull_request.html_url }})",
+                   "color": 16776960
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_PR }}
+
+      - name: Notify Discord - Pull Request Closed
+        if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && !github.event.pull_request.merged }}
+        run: |
+          SERVICE=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "❌ Pull Request Closed",
+                   "description": "**Service:** '"${SERVICE}"'\n**Title:** ${{ github.event.pull_request.title }}\n**Author:** @${{ github.event.pull_request.user.login }}\n**Branch:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n[View Pull Request](${{ github.event.pull_request.html_url }})",
+                   "color": 15158332
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_PR }}
+
+      - name: Notify Discord - Pull Request Merged
+        if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged }}
+        run: |
+          SERVICE=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "✅ Pull Request Merged",
+                   "description": "**Service:** '"${SERVICE}"'\n**Title:** ${{ github.event.pull_request.title }}\n**Author:** @${{ github.event.pull_request.user.login }}\n**Branch:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n[View Pull Request](${{ github.event.pull_request.html_url }})",
+                   "color": 3066993
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_PR }}
+
+      - name: Notify Discord - Pull Request Reopened
+        if: ${{ github.event_name == 'pull_request' && github.event.action == 'reopened' }}
+        run: |
+          SERVICE=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "🔄 Pull Request Reopened",
+                   "description": "**Service:** '"${SERVICE}"'\n**Title:** ${{ github.event.pull_request.title }}\n**Author:** @${{ github.event.pull_request.user.login }}\n**Branch:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n[View Pull Request](${{ github.event.pull_request.html_url }})",
+                   "color": 16776960
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_PR }}
+
+      - name: Notify Discord - Success
+        if: ${{ success() && github.event_name == 'push' }}
+        run: |
+          COMMITS=$(cat commits.txt | head -n 10 | sed ':a;N;$!ba;s/\n/\\n/g')
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "✅ Build and Test Succeeded",
+                   "description": "**Branch:** ${{ github.ref_name }}\n**Event**: ${{ github.event_name }}\n**Author:** ${{ github.actor }}\n**Job:** Default CI Pipeline\n**Commits:**\n'"${COMMITS}"'\n[View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                   "color": 3066993
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_EMAIL_SERVICE }}
+
+      - name: Notify Discord - Failure
+        if: ${{ failure() && github.event_name == 'push' }}
+        run: |
+          COMMITS=$(cat commits.txt | head -n 10 | sed ':a;N;$!ba;s/\n/\\n/g')
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "embeds": [{
+                   "title": "❌ Build or Test Failed",
+                   "description": "**Branch:** ${{ github.ref_name }}\n**Event**: ${{ github.event_name }}\n**Author:** ${{ github.actor }}\n**Job:** Default CI Pipeline\n**Commits:**\n'"${COMMITS}"'\n**Error:** Check logs for details.\n[View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                   "color": 15158332
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL_EMAIL_SERVICE }}

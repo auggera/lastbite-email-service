@@ -11,5 +11,5 @@ import lombok.*;
 public class TokenValidationResponse {
 
     private boolean valid;
-    private Integer userId;
+    private Long userId;
 }

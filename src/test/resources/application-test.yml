@@ -7,4 +7,4 @@ token-service:
 app:
   verification:
     base-url: http://localhost:8081
-    verify-url: /api/email/{userId}/verify-email
+    verify-url: /api/users/{id}/email/verify

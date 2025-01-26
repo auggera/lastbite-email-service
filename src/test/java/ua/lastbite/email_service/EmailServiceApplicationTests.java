@@ -10,5 +10,6 @@ class EmailServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
+		// blank
 	}
 }

@@ -1,7 +1,5 @@
 package ua.lastbite.email_service.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -39,10 +37,7 @@ class UserServiceClientTest {
     @Value("${user-service.url}")
     private String userServiceUrl;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private static final Integer USER_ID = 1;
+    private static final long USER_ID = 1L;
     private MockRestServiceServer mockServer;
     private String getEmailInfoUrl;
     private String markEmailAsVerifiedUrl;
@@ -69,7 +64,7 @@ class UserServiceClientTest {
     }
 
     @Test
-    void testGetEmailInfoSuccessfully() throws JsonProcessingException {
+    void testGetEmailInfoSuccessfully() {
 
         Mockito.when(restTemplate.getForObject(getEmailInfoUrl, UserEmailResponseDto.class))
                 .thenReturn(expectedResponse);
@@ -88,7 +83,7 @@ class UserServiceClientTest {
 
         ServiceUnavailableException exception = assertThrows(ServiceUnavailableException.class, () -> userServiceClient.getEmailInfoByUserId(USER_ID));
 
-        assertEquals("Failed to retrieve email info from user-service", exception.getMessage());
+        assertEquals("Failed to communicate with user-service", exception.getMessage());
     }
 
     @Test

@@ -11,5 +11,5 @@ import lombok.*;
 public class TokenRequest {
 
     @NotNull(message = "User ID cannot be empty")
-    private Integer userId;
+    private Long userId;
 }

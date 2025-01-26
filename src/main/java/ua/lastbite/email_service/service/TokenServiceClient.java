@@ -9,9 +9,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import ua.lastbite.email_service.dto.token.TokenRequest;
 import ua.lastbite.email_service.dto.token.TokenResponse;
-import ua.lastbite.email_service.dto.token.TokenValidationRequest;
 import ua.lastbite.email_service.dto.token.TokenValidationResponse;
 import ua.lastbite.email_service.exception.ServiceUnavailableException;
 import ua.lastbite.email_service.exception.token.TokenAlreadyUsedException;
@@ -45,26 +45,29 @@ public class TokenServiceClient {
                 .orElseThrow(() -> new TokenGenerationException("Could not generate token"));
     }
 
-    public TokenValidationResponse verifyToken(TokenValidationRequest request) {
+    public TokenValidationResponse verifyToken(String token) {
         LOGGER.info("Validating token");
-        String urlRequest = tokenServiceUrl + "/api/tokens/validate";
+        String urlRequest = UriComponentsBuilder.fromHttpUrl(tokenServiceUrl)
+                .path("/api/tokens/validate/{token}")
+                .buildAndExpand(token)
+                .toString();
 
         try {
-            return restTemplate.postForObject(urlRequest, request, TokenValidationResponse.class);
+            return restTemplate.getForObject(urlRequest, TokenValidationResponse.class);
         } catch (HttpClientErrorException.NotFound e) {
-            LOGGER.error("Token not found for request: {}", request.getTokenValue());
-            throw new TokenNotFoundException(request.getTokenValue());
+            LOGGER.error("Token not found for request: {}", token);
+            throw new TokenNotFoundException(token);
         } catch (HttpClientErrorException.Gone e) {
-            LOGGER.error("Token expired for request: {}", request.getTokenValue());
-            throw new TokenExpiredException(request.getTokenValue());
+            LOGGER.error("Token expired for request: {}", token);
+            throw new TokenExpiredException(token);
         } catch (HttpClientErrorException.Conflict e) {
-            LOGGER.error("Token already used for request: {}", request.getTokenValue());
-            throw new TokenAlreadyUsedException(request.getTokenValue());
+            LOGGER.error("Token already used for request: {}", token);
+            throw new TokenAlreadyUsedException(token);
         } catch (HttpServerErrorException e) {
-            LOGGER.error("Service unavailable for token validation request: {}", request.getTokenValue(), e);
+            LOGGER.error("Service unavailable for token validation request: {}", token, e);
             throw new ServiceUnavailableException("Token service is currently unavailable");
         } catch (RestClientException e) {
-            LOGGER.error("Unexpected error during token validation request: {}", request.getTokenValue(), e);
+            LOGGER.error("Unexpected error during token validation request: {}", token, e);
             throw new ServiceUnavailableException("Unexpected error during token validation");
         }
     }

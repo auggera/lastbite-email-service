@@ -9,9 +9,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import ua.lastbite.email_service.dto.email.EmailRequest;
-import ua.lastbite.email_service.dto.email.EmailVerificationRequest;
 import ua.lastbite.email_service.dto.token.TokenRequest;
-import ua.lastbite.email_service.dto.token.TokenValidationRequest;
 import ua.lastbite.email_service.dto.token.TokenValidationResponse;
 import ua.lastbite.email_service.dto.user.UserEmailResponseDto;
 import ua.lastbite.email_service.exception.EmailAlreadyVerifiedException;
@@ -61,18 +59,18 @@ public class EmailService {
     }
 
     @Async
-    public CompletableFuture<Void> sendVerificationEmail(EmailVerificationRequest request) {
+    public CompletableFuture<Void> sendVerificationEmail(Long userId) {
         LOGGER.info("Processing email verification request.");
 
         LOGGER.info("Requesting user information.");
-        UserEmailResponseDto responseDto = userServiceClient.getEmailInfoByUserId(request.getUserId());
+        UserEmailResponseDto responseDto = userServiceClient.getEmailInfoByUserId(userId);
         if (responseDto.isVerified()) {
             LOGGER.error("Email {} is already verified.", responseDto.getEmail());
             throw new EmailAlreadyVerifiedException();
         }
 
-        LOGGER.info("Request generating token for user ID: {}", request.getUserId());
-        String tokenValue = tokenServiceClient.generateToken(new TokenRequest(request.getUserId()));
+        LOGGER.info("Request generating token for user ID: {}", userId);
+        String tokenValue = tokenServiceClient.generateToken(new TokenRequest(userId));
         LOGGER.info("Successfully generated token: {}", tokenValue);
 
         String subject = "Email Verification";
@@ -87,10 +85,10 @@ public class EmailService {
                 }).thenApply(v -> null);
     }
 
-    public void verifyEmail(TokenValidationRequest request) {
-        LOGGER.info("Starting email verification process for token: {}", request.getTokenValue());
+    public void verifyEmail(String token) {
+        LOGGER.info("Starting email verification process for token: {}", token);
 
-        TokenValidationResponse response = tokenServiceClient.verifyToken(request);
+        TokenValidationResponse response = tokenServiceClient.verifyToken(token);
         LOGGER.info("Token validated successfully for user ID: {}", response.getUserId());
 
         userServiceClient.markEmailAsVerified(response.getUserId());

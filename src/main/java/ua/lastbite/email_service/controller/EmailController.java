@@ -1,14 +1,11 @@
 package ua.lastbite.email_service.controller;
 
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ua.lastbite.email_service.dto.email.EmailRequest;
-import ua.lastbite.email_service.dto.email.EmailVerificationRequest;
-import ua.lastbite.email_service.dto.token.TokenValidationRequest;
 import ua.lastbite.email_service.service.EmailService;
 
 import java.util.concurrent.CompletionException;
@@ -16,9 +13,9 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/emails")
+@Slf4j
 public class EmailController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(EmailController.class);
     private final EmailService emailService;
 
     @Autowired
@@ -26,35 +23,45 @@ public class EmailController {
         this.emailService = emailService;
     }
 
-    @PostMapping("/send")
+    @PostMapping()
     public ResponseEntity<String> sendEmail(@Valid @RequestBody EmailRequest request) {
-        LOGGER.info("Received request to send email to: {}", request.getToEmail());
+        log.info("Request received: POST /api/emails - Send email");
         try {
             emailService.sendSimpleEmail(request).get();
+            log.info("Email sent successfully to: {}", request.getToEmail());
             return ResponseEntity.ok("Email sent successfully");
-        } catch (InterruptedException | ExecutionException ex) {
-            LOGGER.error("Failed to send email: {}", ex.getMessage());
+        } catch (InterruptedException ex) {
+            log.error("Failed to send email to: {}", request.getToEmail(), ex);
+            Thread.currentThread().interrupt();
+            throw new CompletionException(ex);
+        } catch (ExecutionException ex) {
+            log.error("Failed to send email to: {}", request.getToEmail(), ex);
             throw new CompletionException(ex);
         }
     }
 
-    @PostMapping("/send-verification")
-    public ResponseEntity<String> sendVerificationEmail(@Valid @RequestBody EmailVerificationRequest request) {
-        LOGGER.info("Received an email verification request for user ID: {}", request.getUserId());
+    @PostMapping("/verification/users/{id}")
+    public ResponseEntity<String> sendVerificationEmail(@PathVariable Long id) {
+        log.info("Request received: POST /api/emails/verification - Sending verification email for user ID: {}", id);
         try {
-            emailService.sendVerificationEmail(request).get();
+            emailService.sendVerificationEmail(id).get();
+            log.info("Verification email sent successfully for user ID: {}", id);
             return ResponseEntity.ok("Email Verification sent successfully");
-        } catch (InterruptedException | ExecutionException ex) {
-            LOGGER.error("Failed to send verification email: {}", ex.getMessage());
+        } catch (InterruptedException ex) {
+            log.error("Failed to send verification email for user ID: {}", id, ex);
+            Thread.currentThread().interrupt();
+            throw new CompletionException(ex);
+        } catch (ExecutionException ex) {
+            log.error("Failed to send verification email for user ID: {}", id, ex);
             throw new CompletionException(ex);
         }
     }
 
-    @PostMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@Valid @RequestBody TokenValidationRequest request) {
-        LOGGER.info("Received request to verify email for token: {}", request.getTokenValue());
-        emailService.verifyEmail(request);
-        LOGGER.info("Email verification successful for token: {}", request.getTokenValue());
+    @PostMapping("/verification/{token}")
+    public ResponseEntity<String> verifyEmail(@PathVariable("token") String token) {
+        log.info("Request received: POST /api/emails/verification/{} - Verifying email", token);
+        emailService.verifyEmail(token);
+        log.info("Email verification successful for token: {}", token);
         return ResponseEntity.ok("Email successfully verified");
     }
 }

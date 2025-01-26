@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
-public class EmailServiceTest {
+class EmailServiceTest {
 
     @Mock
     private TokenServiceClient tokenServiceClient;
@@ -46,21 +46,17 @@ public class EmailServiceTest {
     @Value("${app.verification.verify-url}")
     private String verificationVerifyUrl;
 
-    private TokenValidationRequest tokenValidationRequest;
     private TokenValidationResponse tokenValidationResponse;
-    private EmailVerificationRequest emailVerificationRequest;
     private UserEmailResponseDto userEmailResponseDto;
     private EmailRequest emailRequest;
 
-    private static final Integer USER_ID = 1;
+    private static final long USER_ID = 1L;
     private static final String TOKEN = "tokenValue123";
     private static final String EMAIL = "email@example.com";
 
     @BeforeEach
     void setUp() {
-        tokenValidationRequest = new TokenValidationRequest(TOKEN);
         tokenValidationResponse = new TokenValidationResponse(true, USER_ID);
-        emailVerificationRequest = new EmailVerificationRequest(USER_ID);
         userEmailResponseDto = new UserEmailResponseDto(EMAIL, false);
         emailRequest = new EmailRequest("recipient@example.com", "Test Subject", "Test Body");
     }
@@ -69,96 +65,96 @@ public class EmailServiceTest {
     void testVerifyEmailSuccess() {
 
         Mockito.doReturn(tokenValidationResponse)
-                .when(tokenServiceClient).verifyToken(tokenValidationRequest);
+                .when(tokenServiceClient).verifyToken(TOKEN);
 
-        emailService.verifyEmail(tokenValidationRequest);
+        emailService.verifyEmail(TOKEN);
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.times(1)).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailTokenNotFound() {
 
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenThrow(new TokenNotFoundException(TOKEN));
 
-        TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> emailService.verifyEmail(TOKEN));
 
-        assertEquals("Token not found: " + tokenValidationRequest.getTokenValue(), exception.getMessage());
+        assertEquals("Token not found: " + TOKEN, exception.getMessage());
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.never()).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailTokenExpired() {
 
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenThrow(new TokenExpiredException(TOKEN));
 
-        TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> emailService.verifyEmail(TOKEN));
 
-        assertEquals("Token expired: " + tokenValidationRequest.getTokenValue(), exception.getMessage());
+        assertEquals("Token expired: " + TOKEN, exception.getMessage());
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.never()).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailTokenAlreadyUsed() {
 
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenThrow(new TokenAlreadyUsedException(TOKEN));
 
-        TokenAlreadyUsedException exception = assertThrows(TokenAlreadyUsedException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        TokenAlreadyUsedException exception = assertThrows(TokenAlreadyUsedException.class, () -> emailService.verifyEmail(TOKEN));
 
-        assertEquals("Token already used: " + tokenValidationRequest.getTokenValue(), exception.getMessage());
+        assertEquals("Token already used: " + TOKEN, exception.getMessage());
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.never()).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailServiceUnavailable() {
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenThrow(ServiceUnavailableException.class);
 
-        assertThrows(ServiceUnavailableException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        assertThrows(ServiceUnavailableException.class, () -> emailService.verifyEmail(TOKEN));
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.never()).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailUserNotFound() {
 
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenReturn(tokenValidationResponse);
 
         Mockito.doThrow(new UserNotFoundException(USER_ID))
                 .when(userServiceClient).markEmailAsVerified(USER_ID);
 
-        UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> emailService.verifyEmail(TOKEN));
 
         assertEquals("User with ID 1 not found", exception.getMessage());
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.times(1)).markEmailAsVerified(USER_ID);
     }
 
     @Test
     void testVerifyEmailFailedMarkAsVerified() {
 
-        Mockito.when(tokenServiceClient.verifyToken(tokenValidationRequest))
+        Mockito.when(tokenServiceClient.verifyToken(TOKEN))
                 .thenReturn(tokenValidationResponse);
 
         Mockito.doThrow(ServiceUnavailableException.class)
                 .when(userServiceClient).markEmailAsVerified(USER_ID);
 
-        assertThrows(ServiceUnavailableException.class, () -> emailService.verifyEmail(tokenValidationRequest));
+        assertThrows(ServiceUnavailableException.class, () -> emailService.verifyEmail(TOKEN));
 
-        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(tokenValidationRequest);
+        Mockito.verify(tokenServiceClient, Mockito.times(1)).verifyToken(TOKEN);
         Mockito.verify(userServiceClient, Mockito.times(1)).markEmailAsVerified(USER_ID);
     }
 
@@ -200,7 +196,7 @@ public class EmailServiceTest {
         String expectedVerificationUrl = verificationBaseUrl + verificationVerifyUrl + "?token=" + TOKEN;
         String expectedBody = "Please click the following link to verify your email: " + expectedVerificationUrl;
 
-        CompletableFuture<Void> future = emailService.sendVerificationEmail(emailVerificationRequest);
+        CompletableFuture<Void> future = emailService.sendVerificationEmail(USER_ID);
         future.get();
 
         Mockito.verify(userServiceClient, Mockito.times(1)).getEmailInfoByUserId(USER_ID);
@@ -220,7 +216,7 @@ public class EmailServiceTest {
         Mockito.doThrow(new TokenGenerationException("Failed to generate token")).when(tokenServiceClient).generateToken(Mockito.any());
 
         TokenGenerationException exception = assertThrows(TokenGenerationException.class,
-                () -> emailService.sendVerificationEmail(emailVerificationRequest));
+                () -> emailService.sendVerificationEmail(USER_ID));
 
         assertEquals("Failed to generate token", exception.getMessage());
         Mockito.verify(userServiceClient, Mockito.times(1)).getEmailInfoByUserId(USER_ID);
@@ -234,7 +230,7 @@ public class EmailServiceTest {
 
         Mockito.when(userServiceClient.getEmailInfoByUserId(USER_ID)).thenReturn(userEmailResponseDto);
 
-        EmailAlreadyVerifiedException exception = assertThrows(EmailAlreadyVerifiedException.class, () -> emailService.sendVerificationEmail(emailVerificationRequest));
+        EmailAlreadyVerifiedException exception = assertThrows(EmailAlreadyVerifiedException.class, () -> emailService.sendVerificationEmail(USER_ID));
 
         assertEquals("Email already verified", exception.getMessage());
 
@@ -251,7 +247,7 @@ public class EmailServiceTest {
         Mockito.when(tokenServiceClient.generateToken(new TokenRequest(USER_ID)))
                 .thenThrow(new TokenGenerationException("Failed to generate token"));
 
-        TokenGenerationException exception = assertThrows(TokenGenerationException.class, () -> emailService.sendVerificationEmail(emailVerificationRequest));
+        TokenGenerationException exception = assertThrows(TokenGenerationException.class, () -> emailService.sendVerificationEmail(USER_ID));
 
         assertEquals("Failed to generate token", exception.getMessage());
 
@@ -274,7 +270,7 @@ public class EmailServiceTest {
                 .send(Mockito.any(SimpleMailMessage.class));
 
         CompletionException exception = assertThrows(CompletionException.class,
-                () -> emailService.sendVerificationEmail(emailVerificationRequest).join());
+                () -> emailService.sendVerificationEmail(USER_ID).join());
 
         Throwable cause = exception.getCause();
         assertInstanceOf(EmailSendingFailedException.class, cause);

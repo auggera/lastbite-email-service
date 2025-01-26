@@ -53,7 +53,7 @@ public class TokenServiceClient {
                 .toString();
 
         try {
-            return restTemplate.getForObject(urlRequest, TokenValidationResponse.class);
+            return restTemplate.postForObject(urlRequest, null, TokenValidationResponse.class);
         } catch (HttpClientErrorException.NotFound e) {
             LOGGER.error("Token not found for request: {}", token);
             throw new TokenNotFoundException(token);

@@ -103,11 +103,11 @@ class TokenServiceClientTest {
 
     @Test
     void testValidateTokenSuccessfully() {
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenReturn(tokenValidationResponse);
 
         mockServer.expect(ExpectedCount.once(), requestTo(urlValidateToken))
-                .andExpect(method(HttpMethod.GET))
+                .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess("{\"valid\":true, \"userId\":1}", MediaType.APPLICATION_JSON));
 
         TokenValidationResponse actualResponse = tokenServiceClient.verifyToken(TOKEN);
@@ -120,7 +120,7 @@ class TokenServiceClientTest {
     @Test
     void verifyTokenNotFound() {
 
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenThrow(HttpClientErrorException.NotFound.create(HttpStatus.NOT_FOUND, "Exception occurred", null, null, null));
 
         TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () -> tokenServiceClient.verifyToken(TOKEN));
@@ -131,7 +131,7 @@ class TokenServiceClientTest {
     @Test
     void verifyTokenExpired() {
 
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenThrow(HttpClientErrorException.Gone.create(HttpStatus.GONE, "Exception occurred", null, null, null));
 
         TokenExpiredException exception = assertThrows(TokenExpiredException.class, () -> tokenServiceClient.verifyToken(TOKEN));
@@ -142,7 +142,7 @@ class TokenServiceClientTest {
     @Test
     void verifyTokenIsAlreadyUsed() {
 
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenThrow(HttpClientErrorException.Conflict.create(HttpStatus.CONFLICT, "Exception occurred", null, null, null));
 
         TokenAlreadyUsedException exception = assertThrows(TokenAlreadyUsedException.class, () -> tokenServiceClient.verifyToken(TOKEN));
@@ -153,7 +153,7 @@ class TokenServiceClientTest {
     @Test
     void verifyTokenServiceUnavailable() {
 
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenThrow(HttpServerErrorException.InternalServerError.class);
 
         ServiceUnavailableException exception = assertThrows(ServiceUnavailableException.class, () -> tokenServiceClient.verifyToken(TOKEN));
@@ -164,7 +164,7 @@ class TokenServiceClientTest {
     @Test
     void verifyTokenRestClientException() {
 
-        Mockito.when(restTemplate.getForObject(urlValidateToken, TokenValidationResponse.class))
+        Mockito.when(restTemplate.postForObject(urlValidateToken, null, TokenValidationResponse.class))
                 .thenThrow(RestClientException.class);
 
         ServiceUnavailableException exception = assertThrows(ServiceUnavailableException.class, () -> tokenServiceClient.verifyToken(TOKEN));

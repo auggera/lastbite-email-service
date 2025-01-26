@@ -1,8 +1,8 @@
-name: Feature Branch CI
+name: Build and Test
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [ feature/* ]
   pull_request:
     branches: [ main, develop ]
 
@@ -12,6 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Cache Maven packages
         uses: actions/cache@v3
@@ -32,3 +34,9 @@ jobs:
 
       - name: Run tests
         run: mvn test
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-results
+          path: target/

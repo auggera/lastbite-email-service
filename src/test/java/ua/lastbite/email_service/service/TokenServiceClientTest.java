@@ -63,7 +63,7 @@ class TokenServiceClientTest {
         tokenResponse = new TokenResponse("tokenValue123");
         tokenValidationResponse = new TokenValidationResponse(true, 1L);
         mockServer = MockRestServiceServer.bindTo(restTemplate).build();
-        urlGenerateToken = tokenServiceUrl + "/api/tokens/generate";
+        urlGenerateToken = tokenServiceUrl + "/api/tokens";
     }
 
     @BeforeEach
